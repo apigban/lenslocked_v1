@@ -2,6 +2,7 @@ package views
 
 import (
 	"html/template"
+	"net/http"
 	"path/filepath"
 )
 
@@ -13,6 +14,11 @@ var (
 type View struct {
 	Template *template.Template
 	Layout   string
+}
+
+// Render is used to render the view with predefined layout
+func (v *View) Render(w http.ResponseWriter, data interface{}) error {
+	return v.Template.ExecuteTemplate(w, v.Layout, data)
 }
 
 // NewView function parses all templates and returns a View type

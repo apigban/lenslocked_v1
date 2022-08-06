@@ -23,3 +23,10 @@
     - Create navbar template
     - Call navbar template from bootstrap layout
     - Add navbar to view.go
+
+#6.8
+    Extend the *View* type, add a Render() method to the type. both home and contact handlefuncs do the template rendering
+    - add render to the View type
+    - update home and contact functions to use the method
+    - Add helper method to panic on errors during dev
+     
