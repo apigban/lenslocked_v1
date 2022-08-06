@@ -9,7 +9,11 @@
     - catch errors when parsing layout files
         - panic before template is executed/rendered
 #6.3.3
-    Use the "View" type
+    Use the *View* type
     - change both template variables to become views
     - update main to create instance of views instead of templates
     - handlerfuncs for home/contact needs to be updated to use the view Type
+    
+    Create the "Bootstrap" Layout
+    - Update View type to use bootstrap Layout
+    - Update main.go to sync changes with view type
