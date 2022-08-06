@@ -1,0 +1,10 @@
+#6.3.2
+    Create a *View* Type
+    solves: too many repetitive blocks:
+    - main.go 
+        -  parsing html/layout files 
+        -  errors
+        -  use of globals
+
+    - catch errors when parsing layout files
+        - panic before template is executed/rendered
