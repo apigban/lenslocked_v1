@@ -17,3 +17,9 @@
     Create the "Bootstrap" Layout
     - Update View type to use bootstrap Layout
     - Update main.go to sync changes with view type
+
+#6.4
+    Add Navigation bar to all pages using bootstrap layout
+    - Create navbar template
+    - Call navbar template from bootstrap layout
+    - Add navbar to view.go
