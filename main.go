@@ -15,7 +15,7 @@ var (
 func home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	err := homeView.Template.ExecuteTemplate(w, homeView.Layout, nil) //w - where the template outputs to, homeView.Layout - Template/layout that needs to be rendered, nil - data to be passed
-		if err != nil {
+	if err != nil {
 		panic(err) //TODO - handle error instead of panicking
 	}
 }
@@ -25,7 +25,6 @@ func contact(w http.ResponseWriter, r *http.Request) {
 	err := contactView.Template.ExecuteTemplate(w, contactView.Layout, nil) //w - where the template outputs to, homeView.Layout - Template/layout that needs to be rendered, nil - data to be passed
 	if err != nil {
 		panic(err) //TODO - handle error instead of panicking
-	}
 	}
 }
 
