@@ -8,12 +8,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Global var to try out using html/templates
 var homeTemplate *template.Template
 
 func home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	if err := homeTemplate.Execute(w, nil); err != nil {
-		panic(err)
+		panic(err) //TODO - handle error instead of panicking
 	}
 }
 
@@ -26,9 +27,9 @@ func contact(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	var err error
-	homeTemplate, err = template.ParseFiles("views/home.gohtml")
+	homeTemplate, err = template.ParseFiles("views/home.gohtml") // use the global var
 	if err != nil {
-		panic(err)
+		panic(err) //TODO - handle error instead of panicking
 	}
 	r := mux.NewRouter()
 	r.HandleFunc("/", home)
