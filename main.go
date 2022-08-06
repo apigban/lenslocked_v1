@@ -29,12 +29,19 @@ func contact(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	var err error
-	homeTemplate, err = template.ParseFiles("views/home.gohtml") // use the global var
+	homeTemplate, err = template.ParseFiles( // use the global var
+		"views/home.gohtml",
+		"views/layouts/footer.gohtml",
+	)
+
 	if err != nil {
 		panic(err) //TODO - handle error instead of panicking
 	}
 
-	contactTemplate, err = template.ParseFiles("views/contact.gohtml")
+	contactTemplate, err = template.ParseFiles( // use the global var
+		"views/contact.gohtml",
+		"views/layouts/footer.gohtml",
+	)
 	if err != nil {
 		panic(err) //TODO - handle error instead of panicking
 	}
