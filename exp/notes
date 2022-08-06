@@ -29,4 +29,10 @@
     - add render to the View type
     - update home and contact functions to use the method
     - Add helper method to panic on errors during dev
-     
+#6.8
+    Create a view for the sign up page
+    - Create a view to render the page
+    - get example bootstrap - signup.gohtml
+    - accept input: email and password
+    - HTML labels "id" and "name"
+    - HTML post - submit button
