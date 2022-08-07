@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/apigban/lenslocked_v1/controllers"
 	"github.com/apigban/lenslocked_v1/views"
 	"github.com/gorilla/mux"
 )
@@ -10,7 +11,6 @@ import (
 var (
 	homeView    *views.View
 	contactView *views.View
-	signUpView  *views.View
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -23,22 +23,18 @@ func contact(w http.ResponseWriter, r *http.Request) {
 	must(contactView.Render(w, nil))
 }
 
-func signup(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-
-	must(signUpView.Render(w, nil))
-}
-
 func main() {
 
 	homeView = views.NewView("bootstrap", "views/home.gohtml")
 	contactView = views.NewView("bootstrap", "views/contact.gohtml")
-	signUpView = views.NewView("bootstrap", "views/signup.gohtml")
+
+	//Users controller
+	usersC := controllers.NewUsers()
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", home)
 	r.HandleFunc("/contact", contact)
-	r.HandleFunc("/signup", signup)
+	r.HandleFunc("/signup", usersC.New)
 	http.ListenAndServe(":3000", r)
 }
 
