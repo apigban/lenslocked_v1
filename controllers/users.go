@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/apigban/lenslocked_v1/views"
+	"github.com/gorilla/schema"
 )
 
 // NewUsers is used to create a new Users controller.
@@ -23,6 +24,11 @@ type Users struct {
 	NewView *views.View
 }
 
+type SignupForm struct {
+	Email    string `schema:"email"`
+	Password string `schema:"password"`
+}
+
 func (u Users) New(w http.ResponseWriter, r *http.Request) {
 	if err := u.NewView.Render(w, nil); err != nil {
 		panic(err)
@@ -38,8 +44,11 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		panic(err)
 	}
-	fmt.Fprintln(w, r.PostForm["email"])
-	fmt.Fprintln(w, r.PostFormValue("email"))
-	fmt.Fprintln(w, r.PostFormValue("password"))
-	fmt.Fprintln(w, "This is a temporary response")
+
+	dec := schema.NewDecoder()
+	var form SignupForm
+	if err := dec.Decode(&form, r.PostForm); err != nil {
+		panic(err)
+	}
+	fmt.Fprintln(w, form)
 }
