@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	TemplateDir string = "views/"
 	LayoutDir   string = "views/layouts/"
 	TemplateExt string = ".gohtml"
 )
@@ -31,6 +32,9 @@ func (v *View) Render(w http.ResponseWriter, data interface{}) error {
 // NewView function parses all templates and returns a View type
 // Panics when a template cannot be used.
 func NewView(layout string, files ...string) *View {
+	addTemplatePath(files)
+	addTemplateExt(files)
+
 	files = append(files, layoutFiles()...)
 
 	t, err := template.ParseFiles(files...)
@@ -51,4 +55,26 @@ func layoutFiles() []string {
 		panic(err)
 	}
 	return files
+}
+
+// addTemplatePath takes in a slice of strings
+// representing file paths for temaplates, prepends the
+// TemplateDir to each string in the slice
+//
+// Eg. the input {"home"} yield {"views/home"}
+func addTemplatePath(files []string) {
+	for i, f := range files {
+		files[i] = TemplateDir + f
+	}
+}
+
+// addTemplateExt takes in a slice of strings
+// representing file paths for temaplates, prepends the
+// TemplateExt to each string in the slice
+//
+// Eg. the input {"home"} yield {"home.gohtml"}
+func addTemplateExt(files []string) {
+	for i, f := range files {
+		files[i] = f + TemplateExt
+	}
 }

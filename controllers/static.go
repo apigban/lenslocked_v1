@@ -4,8 +4,8 @@ import "github.com/apigban/lenslocked_v1/views"
 
 func NewStatic() *Static {
 	return &Static{
-		Home:    views.NewView("bootstrap", "views/static/home.gohtml"),
-		Contact: views.NewView("bootstrap", "views/static/home.gohtml"),
+		Home:    views.NewView("bootstrap", "static/home"),
+		Contact: views.NewView("bootstrap", "static/contact"),
 	}
 }
 
