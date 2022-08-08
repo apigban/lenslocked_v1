@@ -36,8 +36,10 @@
     - accept input: email and password
     - HTML labels "id" and "name"
     - HTML post - submit button
-#6.8
+#7.8
     Create a view for the sign up page
     - Install gorilla/schema
     - Need to parse map[string][]string - use gorilla/schema to parse form values
-    - 
+#7.8
+    Create a static controller
+    - Why use a static controller - 
