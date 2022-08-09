@@ -27,21 +27,34 @@ type UserService struct {
 	db *gorm.DB
 }
 
-//ByID will look up a user by ID provided
+// ByID will look up a user by ID provided
 // Case 1 - user, nil
 // Case 2 - nil, ErrNotFound
 // Case 3 - nil, otherError
 func (us *UserService) ByID(id uint) (*User, error) {
 	var user User
-	err := us.db.Where("id = ?", id).First(&user).Error
-	switch err {
-	case nil:
-		return &user, nil
-	case gorm.ErrRecordNotFound:
-		return nil, ErrNotFound
-	default:
-		return nil, err
+	db := us.db.Where("id = ?", id)
+	err := first(db, &user)
+	return &user, err
+}
+
+// ByEmail will look up a user by Email Address provided
+// Case 1 - user, nil
+// Case 2 - nil, ErrNotFound
+// Case 3 - nil, otherError
+func (us *UserService) ByEmail(email string) (*User, error) {
+	var user User
+	db := us.db.Where("email = ?", email)
+	err := first(db, &user)
+	return &user, err
+}
+
+func first(db *gorm.DB, user *User) error {
+	err := db.First(user).Error
+	if err == gorm.ErrRecordNotFound {
+		return ErrNotFound
 	}
+	return err
 }
 
 // Create will create the provided user and backfill the data
@@ -49,6 +62,12 @@ func (us *UserService) ByID(id uint) (*User, error) {
 func (us *UserService) Create(user *User) error {
 	return us.db.Create(user).Error
 	//TODO - create specific errors, like if it is invalid, or user already exists
+}
+
+// Update will update the provided user with all of the data
+// in the provided user object
+func (us *UserService) Update(user *User) error {
+	return us.db.Save(user).Error
 }
 
 //Close closes the UserService data connection
