@@ -5,6 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -66,6 +67,16 @@ func first(db *gorm.DB, dst interface{}) error {
 // Create will create the provided user and backfill the data
 // like ID, CreatedAt and UpdatedAt
 func (us *UserService) Create(user *User) error {
+	//TODO - Create validation function for password entry: tooShort, noUpper, noNumber, noSymbol
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hashedBytes)
+
+	user.Password = "" // Clear out password from memory, avoids logging to stdout
+
 	return us.db.Create(user).Error
 	//TODO - create specific errors, like if it is invalid, or user already exists
 }
@@ -110,6 +121,8 @@ func (us *UserService) AutoMigrate() error {
 
 type User struct {
 	gorm.Model
-	Name  string
-	Email string `gorm:"not null;unique_index"`
+	Name         string
+	Email        string `gorm:"not null;unique_index"`
+	Password     string `gorm:"-"` //not going to be stored in the database
+	PasswordHash string `gorm:"not null"`
 }
