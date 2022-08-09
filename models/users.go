@@ -17,6 +17,7 @@ func NewUserService(connectionInfo string) (*UserService, error) {
 	if err != nil {
 		return nil, err
 	}
+	db.LogMode(true) // TODO - remove when env == production
 	return &UserService{
 		db: db,
 	}, nil
