@@ -26,6 +26,8 @@ func main() {
 	us, err := models.NewUserService(psqlInfo)
 	must(err)
 	defer us.Close()
+	us.AutoMigrate()
+	// us.DestructiveReset()
 
 	r := mux.NewRouter()
 

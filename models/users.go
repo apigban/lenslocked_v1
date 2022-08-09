@@ -111,9 +111,9 @@ func (us *UserService) DestructiveReset() error {
 	return us.AutoMigrate()
 }
 
-// Automigrate will attempt to automatically migrate the users table
+// AutoMigrate will attempt to automatically migrate the users table
 func (us *UserService) AutoMigrate() error {
-	if err := us.db.DropTableIfExists(&User{}).Error; err != nil {
+	if err := us.db.AutoMigrate(&User{}).Error; err != nil {
 		return err
 	}
 	return nil
