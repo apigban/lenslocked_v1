@@ -92,6 +92,30 @@ func (uv *userValidator) ByRemember(token string) (*User, error) {
 	return uv.UserDB.ByRemember(rememberHash)
 }
 
+// Create will create the provided user and backfill the data
+// like ID, CreatedAt and UpdatedAt
+func (uv *userValidator) Create(user *User) error {
+	//TODO - Create validation function for password entry: tooShort, noUpper, noNumber, noSymbol
+	pwBytes := []byte(user.Password + userPwPepper) // add pepper to password and cast concatenated string to byteslice
+	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hashedBytes)
+	user.Password = "" // Clear out password from memory, avoids logging to stdout
+	// Always set remember has on Create(),
+	if user.Remember != "" {
+		token, err := rand.RememberToken()
+		if err != nil {
+			return err
+		}
+		user.Remember = token
+	}
+	user.RememberHash = uv.hmac.Hash(user.Remember)
+	return uv.UserDB.Create(user)
+}
+
 type userValidator struct {
 	UserDB
 	hmac hash.HMAC
@@ -181,24 +205,6 @@ func first(db *gorm.DB, dst interface{}) error {
 // Create will create the provided user and backfill the data
 // like ID, CreatedAt and UpdatedAt
 func (ug *userGorm) Create(user *User) error {
-	//TODO - Create validation function for password entry: tooShort, noUpper, noNumber, noSymbol
-	pwBytes := []byte(user.Password + userPwPepper) // add pepper to password and cast concatenated string to byteslice
-	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	user.PasswordHash = string(hashedBytes)
-	user.Password = "" // Clear out password from memory, avoids logging to stdout
-	// Always set remember has on Create(),
-	if user.Remember != "" {
-		token, err := rand.RememberToken()
-		if err != nil {
-			return err
-		}
-		user.Remember = token
-	}
-	user.RememberHash = ug.hmac.Hash(user.Remember)
 	return ug.db.Create(user).Error
 	//TODO - create specific errors, like if it is invalid, or user already exists
 }
