@@ -130,10 +130,10 @@ func (uv *userValidator) Create(user *User) error {
 		user.Remember = token
 	}
 
-	err := runUserValFuncs(user,	
-		uv.bcryptPassword,			
-		uv.setRememberIfUnset,		// Order of validators matter, setRememberIfUnset needs to happen first
-		uv.hmacRemember)			// as no hashing of an empty remember token will happen
+	err := runUserValFuncs(user,
+		uv.bcryptPassword,
+		uv.setRememberIfUnset, // Order of validators matter, setRememberIfUnset needs to happen first
+		uv.hmacRemember)       // as no hashing of an empty remember token will happen
 	if err != nil {
 		return err
 	}
@@ -153,10 +153,13 @@ func (uv *userValidator) Update(user *User) error {
 // Delete will delete the user with the provided ID
 // in the provided user object
 func (uv *userValidator) Delete(id uint) error {
-	if id == 0 {
-		return ErrInvalidID
+	var user User
+	user.ID = id
+	err := runUserValFuncs(&user, uv.idGreaterThanZero)
+	if err != nil {
+		return err
 	}
-	return uv.UserDB.Delete(id)
+	return uv.UserDB.Delete(user.ID)
 }
 
 // bcryptPassword will hash a user's password with a predefined pepper
@@ -199,6 +202,13 @@ func (uv *userValidator) setRememberIfUnset(user *User) error {
 		return err
 	}
 	user.Remember = token
+	return nil
+}
+
+func (uv *userValidator) idGreaterThanZero(user *User) error {
+	if user.ID <= 0 {
+		return ErrInvalidID
+	}
 	return nil
 }
 
