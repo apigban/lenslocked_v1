@@ -9,24 +9,10 @@ import (
 	"github.com/apigban/lenslocked_v1/views"
 )
 
-// NewUsers is used to create a new Users controller.
-// This function will panic if the templates are not
-// parsed correctly, and should only be used during
-// initial setup.
-//
-// GET /signup
-func NewUsers(us *models.UserService) *Users {
-	return &Users{
-		NewView:   views.NewView("bootstrap", "users/new"),
-		LoginView: views.NewView("bootstrap", "users/login"),
-		us:        us,
-	}
-}
-
 type Users struct {
 	NewView   *views.View
 	LoginView *views.View
-	us        *models.UserService
+	us        models.UserService
 }
 
 type SignupForm struct {
@@ -43,6 +29,20 @@ type LoginForm struct {
 func (u Users) New(w http.ResponseWriter, r *http.Request) {
 	if err := u.NewView.Render(w, nil); err != nil {
 		panic(err)
+	}
+}
+
+// NewUsers is used to create a new Users controller.
+// This function will panic if the templates are not
+// parsed correctly, and should only be used during
+// initial setup.
+//
+// GET /signup
+func NewUsers(us models.UserService) *Users {
+	return &Users{
+		NewView:   views.NewView("bootstrap", "users/new"),
+		LoginView: views.NewView("bootstrap", "users/login"),
+		us:        us,
 	}
 }
 

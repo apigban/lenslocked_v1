@@ -23,10 +23,21 @@ var (
 const userPwPepper = "peppa"
 const hmacSecretKey = "secret-hmac-key"
 
+// User represents the user model in the database
+type User struct {
+	gorm.Model
+	Name         string
+	Email        string `gorm:"not null;unique_index"`
+	Password     string `gorm:"-"` //not going to be stored in the database
+	PasswordHash string `gorm:"not null"`
+	Remember     string `gorm:"-"` //not going to be stored in the database
+	RememberHash string `gorm:"not null;unique_index"`
+}
+
 // UserDB is used to interact with the users database.
 type UserDB interface {
-	// Methods for querying single users
-	ById(id uint) (*User, error)
+	// Methods for querying for single users
+	ByID(id uint) (*User, error)
 	ByEmail(email string) (*User, error)
 	ByRemember(token string) (*User, error)
 
@@ -43,20 +54,32 @@ type UserDB interface {
 	DestructiveReset() error
 }
 
-func NewUserService(connectionInfo string) (*UserService, error) {
+func NewUserService(connectionInfo string) (UserService, error) {
 	ug, err := newUserGorm(connectionInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	return &UserService{
+	return &userService{
 		UserDB: &userValidator{
 			UserDB: ug,
 		},
 	}, nil
 }
 
-type UserService struct {
+// UserService is a set of methods used to manipulate
+// and work with the user model
+type UserService interface {
+	// Authenticate will pverify the provided email and password are correct.
+	// If correct, the user associated to that email will be returned.
+	// Can also return error:
+	// ErrNotFound, ErrInvalidPassword, or catchall error
+	Authenticate(email, password string) (*User, error)
+	UserDB
+}
+
+// Implementation of the userService
+type userService struct {
 	UserDB
 }
 
@@ -82,11 +105,6 @@ var _ UserDB = &userGorm{}
 type userGorm struct {
 	db   *gorm.DB
 	hmac hash.HMAC
-}
-
-// ById implements UserDB
-func (*userGorm) ById(id uint) (*User, error) {
-	panic("unimplemented")
 }
 
 // ByID will look up a user by ID provided
@@ -117,7 +135,6 @@ func (ug *userGorm) ByEmail(email string) (*User, error) {
 func (ug *userGorm) ByRemember(token string) (*User, error) {
 	var user User
 	rememberHash := ug.hmac.Hash(token)
-
 	err := first(ug.db.Where("remember_hash = ?", rememberHash), &user)
 	if err != nil {
 		return nil, err
@@ -127,7 +144,7 @@ func (ug *userGorm) ByRemember(token string) (*User, error) {
 }
 
 // Authenticate can be used to authenticate the user with the given user and password.
-func (us *UserService) Authenticate(email, password string) (*User, error) {
+func (us userService) Authenticate(email, password string) (*User, error) {
 	foundUser, err := us.ByEmail(email)
 	if err != nil {
 		return nil, err
@@ -167,7 +184,6 @@ func (ug *userGorm) Create(user *User) error {
 	}
 
 	user.PasswordHash = string(hashedBytes)
-
 	user.Password = "" // Clear out password from memory, avoids logging to stdout
 	// Always set remember has on Create(),
 	if user.Remember != "" {
@@ -221,14 +237,4 @@ func (ug *userGorm) AutoMigrate() error {
 		return err
 	}
 	return nil
-}
-
-type User struct {
-	gorm.Model
-	Name         string
-	Email        string `gorm:"not null;unique_index"`
-	Password     string `gorm:"-"` //not going to be stored in the database
-	PasswordHash string `gorm:"not null"`
-	Remember     string `gorm:"-"` //not going to be stored in the database
-	RememberHash string `gorm:"not null;unique_index"`
 }
