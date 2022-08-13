@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/apigban/lenslocked_v1/hash"
 	"github.com/apigban/lenslocked_v1/rand"
@@ -103,6 +104,20 @@ type userValidator struct {
 	hmac hash.HMAC
 }
 
+// ByRemember will normalize the email address before calling
+// ByEmail on the UserDB field
+func (uv *userValidator) ByEmail(email string) (*User, error) {
+	user := User{
+		Email: email,
+	}
+	if err := runUserValFuncs(&user,
+		uv.normalizeEmail); err != nil {
+		return nil, err
+	}
+
+	return uv.UserDB.ByEmail(user.Email)
+}
+
 // ByRemember will hash the remember token and then call
 // ByRemember on the subsequent UserDB layer.
 func (uv *userValidator) ByRemember(token string) (*User, error) {
@@ -131,6 +146,7 @@ func (uv *userValidator) Create(user *User) error {
 	}
 
 	err := runUserValFuncs(user,
+		uv.normalizeEmail,
 		uv.bcryptPassword,
 		uv.setRememberIfUnset, // Order of validators matter, setRememberIfUnset needs to happen first
 		uv.hmacRemember)       // as no hashing of an empty remember token will happen
@@ -143,7 +159,10 @@ func (uv *userValidator) Create(user *User) error {
 // Update will hash a remember hash if token is provided
 // in the user object
 func (uv *userValidator) Update(user *User) error {
-	err := runUserValFuncs(user, uv.bcryptPassword, uv.hmacRemember)
+	err := runUserValFuncs(user,
+		uv.bcryptPassword,
+		uv.hmacRemember,
+		uv.normalizeEmail)
 	if err != nil {
 		return err
 	}
@@ -212,6 +231,12 @@ func (uv *userValidator) idGreaterThanZero(user *User) error {
 	return nil
 }
 
+//normalizeEmail sets the provided email to lowercase and trims the whitespace
+func (uv *userValidator) normalizeEmail(user *User) error {
+	user.Email = strings.ToLower(user.Email)
+	user.Email = strings.TrimSpace(user.Email)
+	return nil
+}
 func newUserGorm(connectionInfo string) (*userGorm, error) {
 	db, err := gorm.Open("postgres", connectionInfo)
 	if err != nil {
