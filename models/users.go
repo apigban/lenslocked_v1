@@ -130,7 +130,10 @@ func (uv *userValidator) Create(user *User) error {
 		user.Remember = token
 	}
 
-	err := runUserValFuncs(user, uv.bcryptPassword, uv.hmacRemember)
+	err := runUserValFuncs(user,	
+		uv.bcryptPassword,			
+		uv.setRememberIfUnset,		// Order of validators matter, setRememberIfUnset needs to happen first
+		uv.hmacRemember)			// as no hashing of an empty remember token will happen
 	if err != nil {
 		return err
 	}
@@ -182,6 +185,20 @@ func (uv *userValidator) hmacRemember(user *User) error {
 		return nil
 	}
 	user.RememberHash = uv.hmac.Hash(user.Remember)
+	return nil
+}
+
+// setRememberIfUnset only needs to happen on user creation because
+// userDB needs a value
+func (uv *userValidator) setRememberIfUnset(user *User) error {
+	if user.Remember != "" {
+		return nil
+	}
+	token, err := rand.RememberToken()
+	if err != nil {
+		return err
+	}
+	user.Remember = token
 	return nil
 }
 
