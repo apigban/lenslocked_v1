@@ -23,6 +23,26 @@ var (
 const userPwPepper = "peppa"
 const hmacSecretKey = "secret-hmac-key"
 
+// UserDB is used to interact with the users database.
+type UserDB interface {
+	// Methods for querying single users
+	ById(id uint) (*User, error)
+	ByEmail(email string) (*User, error)
+	ByRemember(token string) (*User, error)
+
+	// Methods for altering users
+	Create(user *User) error
+	Update(user *User) error
+	Delete(id uint) error
+
+	// Used to close a DB connection
+	Close() error
+
+	// Migration helpers
+	AutoMigrate() error
+	DestructiveReset() error
+}
+
 func NewUserService(connectionInfo string) (*UserService, error) {
 	db, err := gorm.Open("postgres", connectionInfo)
 	if err != nil {
@@ -121,7 +141,7 @@ func (us *UserService) Create(user *User) error {
 	user.PasswordHash = string(hashedBytes)
 
 	user.Password = "" // Clear out password from memory, avoids logging to stdout
-// Always set remember has on Create(), 
+	// Always set remember has on Create(),
 	if user.Remember != "" {
 		token, err := rand.RememberToken()
 		if err != nil {
