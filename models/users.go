@@ -106,17 +106,21 @@ type userValidator struct {
 // ByRemember will hash the remember token and then call
 // ByRemember on the subsequent UserDB layer.
 func (uv *userValidator) ByRemember(token string) (*User, error) {
-	rememberHash := uv.hmac.Hash(token)
-	return uv.UserDB.ByRemember(rememberHash)
+	user := User{
+		Remember: token,
+	}
+
+	if err := runUserValFuncs(&user,
+		uv.hmacRemember); err != nil {
+		return nil, err
+	}
+
+	return uv.UserDB.ByRemember(user.RememberHash)
 }
 
 // Create will create the provided user and backfill the data
 // like ID, CreatedAt and UpdatedAt
 func (uv *userValidator) Create(user *User) error {
-	if err := runUserValFuncs(user,
-		uv.bcryptPassword); err != nil {
-		return err
-	}
 	// Always set remember has on Create(),
 	if user.Remember != "" {
 		token, err := rand.RememberToken()
@@ -125,15 +129,20 @@ func (uv *userValidator) Create(user *User) error {
 		}
 		user.Remember = token
 	}
-	user.RememberHash = uv.hmac.Hash(user.Remember)
+
+	err := runUserValFuncs(user, uv.bcryptPassword, uv.hmacRemember)
+	if err != nil {
+		return err
+	}
 	return uv.UserDB.Create(user)
 }
 
 // Update will hash a remember hash if token is provided
 // in the user object
 func (uv *userValidator) Update(user *User) error {
-	if user.Remember != "" {
-		user.RememberHash = uv.hmac.Hash(user.Remember)
+	err := runUserValFuncs(user, uv.bcryptPassword, uv.hmacRemember)
+	if err != nil {
+		return err
 	}
 	return uv.UserDB.Update(user)
 }
@@ -162,6 +171,17 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 	}
 	user.PasswordHash = string(hashedBytes)
 	user.Password = "" // Clear out password from memory, avoids logging to stdout
+	return nil
+}
+
+// bcryptPassword will hash a user's password with a predefined pepper
+// and bcrypt if the password field is not an empty string
+func (uv *userValidator) hmacRemember(user *User) error {
+	// If remember token provided is empty, no need to hash the token
+	if user.Remember == "" {
+		return nil
+	}
+	user.RememberHash = uv.hmac.Hash(user.Remember)
 	return nil
 }
 
