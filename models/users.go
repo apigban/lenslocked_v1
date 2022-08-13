@@ -147,6 +147,7 @@ func (uv *userValidator) Create(user *User) error {
 
 	err := runUserValFuncs(user,
 		uv.normalizeEmail,
+		uv.requireEmail,
 		uv.bcryptPassword,
 		uv.setRememberIfUnset, // Order of validators matter, setRememberIfUnset needs to happen first
 		uv.hmacRemember)       // as no hashing of an empty remember token will happen
@@ -162,7 +163,8 @@ func (uv *userValidator) Update(user *User) error {
 	err := runUserValFuncs(user,
 		uv.bcryptPassword,
 		uv.hmacRemember,
-		uv.normalizeEmail)
+		uv.normalizeEmail,
+		uv.requireEmail)
 	if err != nil {
 		return err
 	}
@@ -231,12 +233,22 @@ func (uv *userValidator) idGreaterThanZero(user *User) error {
 	return nil
 }
 
-//normalizeEmail sets the provided email to lowercase and trims the whitespace
+// normalizeEmail sets the provided email to lowercase and trims the whitespace
 func (uv *userValidator) normalizeEmail(user *User) error {
 	user.Email = strings.ToLower(user.Email)
 	user.Email = strings.TrimSpace(user.Email)
 	return nil
 }
+
+// requireEmail returns an email is required error
+// when user.Email is an empty string
+func (uv *userValidator) requireEmail(user *User) error {
+	if user.Email == "" {
+		return errors.New("Email address is required.")
+	}
+	return nil
+}
+
 func newUserGorm(connectionInfo string) (*userGorm, error) {
 	db, err := gorm.Open("postgres", connectionInfo)
 	if err != nil {
