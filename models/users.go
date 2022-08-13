@@ -215,12 +215,11 @@ func (ug *userGorm) ByRemember(rememberHash string) (*User, error) {
 }
 
 // Authenticate can be used to authenticate the user with the given user and password.
-func (us userService) Authenticate(email, password string) (*User, error) {
+func (us *userService) Authenticate(email, password string) (*User, error) {
 	foundUser, err := us.ByEmail(email)
 	if err != nil {
 		return nil, err
 	}
-
 	err = bcrypt.CompareHashAndPassword([]byte(foundUser.PasswordHash), []byte(password+userPwPepper))
 	if err != nil { // if error IS nil, fallthrough
 		switch err {
