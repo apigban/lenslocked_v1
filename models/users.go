@@ -116,6 +116,15 @@ func (uv *userValidator) Create(user *User) error {
 	return uv.UserDB.Create(user)
 }
 
+// Update will hash a remember hash if token is provided
+// in the user object
+func (uv *userValidator) Update(user *User) error {
+	if user.Remember != "" {
+		user.RememberHash = uv.hmac.Hash(user.Remember)
+	}
+	return uv.UserDB.Update(user)
+}
+
 type userValidator struct {
 	UserDB
 	hmac hash.HMAC
@@ -223,9 +232,6 @@ func (ug *userGorm) Delete(id uint) error {
 // Update will update the provided user with all of the data
 // in the provided user object
 func (ug *userGorm) Update(user *User) error {
-	if user.Remember != "" {
-		user.RememberHash = ug.hmac.Hash(user.Remember)
-	}
 	return ug.db.Save(user).Error
 }
 
