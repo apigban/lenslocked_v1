@@ -125,6 +125,15 @@ func (uv *userValidator) Update(user *User) error {
 	return uv.UserDB.Update(user)
 }
 
+// Delete will delete the user with the provided ID
+// in the provided user object
+func (uv *userValidator) Delete(id uint) error {
+	if id == 0 {
+		return ErrInvalidID
+	}
+	return uv.UserDB.Delete(id)
+}
+
 type userValidator struct {
 	UserDB
 	hmac hash.HMAC
@@ -221,12 +230,8 @@ func (ug *userGorm) Create(user *User) error {
 // Delete will delete the user with the provided ID
 // in the provided user object
 func (ug *userGorm) Delete(id uint) error {
-	if id == 0 {
-		return ErrInvalidID
-	}
 	user := User{Model: gorm.Model{ID: id}}
 	return ug.db.Delete(&user).Error
-
 }
 
 // Update will update the provided user with all of the data
