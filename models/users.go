@@ -69,6 +69,8 @@ func NewUserService(connectionInfo string) (UserService, error) {
 	}, nil
 }
 
+var _ UserDB = &userGorm{}
+
 // UserService is a set of methods used to manipulate
 // and work with the user model
 type UserService interface {
@@ -85,6 +87,22 @@ type userService struct {
 	UserDB
 }
 
+type userValFunc func(*User) error
+
+func runUserValFuncs(user *User, fns ...userValFunc) error {
+	for _, fn := range fns {
+		if err := fn(user); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type userValidator struct {
+	UserDB
+	hmac hash.HMAC
+}
+
 // ByRemember will hash the remember token and then call
 // ByRemember on the subsequent UserDB layer.
 func (uv *userValidator) ByRemember(token string) (*User, error) {
@@ -95,15 +113,10 @@ func (uv *userValidator) ByRemember(token string) (*User, error) {
 // Create will create the provided user and backfill the data
 // like ID, CreatedAt and UpdatedAt
 func (uv *userValidator) Create(user *User) error {
-	//TODO - Create validation function for password entry: tooShort, noUpper, noNumber, noSymbol
-	pwBytes := []byte(user.Password + userPwPepper) // add pepper to password and cast concatenated string to byteslice
-	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
-	if err != nil {
+	if err := runUserValFuncs(user,
+		uv.bcryptPassword); err != nil {
 		return err
 	}
-
-	user.PasswordHash = string(hashedBytes)
-	user.Password = "" // Clear out password from memory, avoids logging to stdout
 	// Always set remember has on Create(),
 	if user.Remember != "" {
 		token, err := rand.RememberToken()
@@ -134,9 +147,22 @@ func (uv *userValidator) Delete(id uint) error {
 	return uv.UserDB.Delete(id)
 }
 
-type userValidator struct {
-	UserDB
-	hmac hash.HMAC
+// bcryptPassword will hash a user's password with a predefined pepper
+// and bcrypt if the password field is not an empty string
+func (uv *userValidator) bcryptPassword(user *User) error {
+	// If password provided is empty, then user is not trying to set password
+	if user.Password == "" {
+		return nil
+	}
+	//TODO - Create validation function for password entry: tooShort, noUpper, noNumber, noSymbol
+	pwBytes := []byte(user.Password + userPwPepper) // add pepper to password and cast concatenated string to byteslice
+	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.PasswordHash = string(hashedBytes)
+	user.Password = "" // Clear out password from memory, avoids logging to stdout
+	return nil
 }
 
 func newUserGorm(connectionInfo string) (*userGorm, error) {
@@ -149,8 +175,6 @@ func newUserGorm(connectionInfo string) (*userGorm, error) {
 		db: db,
 	}, nil
 }
-
-var _ UserDB = &userGorm{}
 
 type userGorm struct {
 	db *gorm.DB
