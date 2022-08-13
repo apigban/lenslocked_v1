@@ -59,11 +59,13 @@ func NewUserService(connectionInfo string) (UserService, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	hmac := hash.NewHMAC(hmacSecretKey)
+	uv := &userValidator{
+		hmac:   hmac,
+		UserDB: ug,
+	}
 	return &userService{
-		UserDB: &userValidator{
-			UserDB: ug,
-		},
+		UserDB: uv,
 	}, nil
 }
 
@@ -83,8 +85,16 @@ type userService struct {
 	UserDB
 }
 
+// ByRemember will hash the remember token and then call
+// ByRemember on the subsequent UserDB layer.
+func (uv *userValidator) ByRemember(token string) (*User, error) {
+	rememberHash := uv.hmac.Hash(token)
+	return uv.UserDB.ByRemember(rememberHash)
+}
+
 type userValidator struct {
 	UserDB
+	hmac hash.HMAC
 }
 
 func newUserGorm(connectionInfo string) (*userGorm, error) {
@@ -93,18 +103,15 @@ func newUserGorm(connectionInfo string) (*userGorm, error) {
 		return nil, err
 	}
 	db.LogMode(true) // TODO - remove when env == production
-	hmac := hash.NewHMAC(hmacSecretKey)
 	return &userGorm{
-		db:   db,
-		hmac: hmac,
+		db: db,
 	}, nil
 }
 
 var _ UserDB = &userGorm{}
 
 type userGorm struct {
-	db   *gorm.DB
-	hmac hash.HMAC
+	db *gorm.DB
 }
 
 // ByID will look up a user by ID provided
@@ -130,16 +137,14 @@ func (ug *userGorm) ByEmail(email string) (*User, error) {
 }
 
 // ByRemember finds a user by their remember token
-// This method will handle the hashing of the token
+// This method expects the remember token to be hashed
 // Errors are the same as ByEmail
-func (ug *userGorm) ByRemember(token string) (*User, error) {
+func (ug *userGorm) ByRemember(rememberHash string) (*User, error) {
 	var user User
-	rememberHash := ug.hmac.Hash(token)
 	err := first(ug.db.Where("remember_hash = ?", rememberHash), &user)
 	if err != nil {
 		return nil, err
 	}
-
 	return &user, nil
 }
 
