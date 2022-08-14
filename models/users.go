@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/apigban/lenslocked_v1/hash"
@@ -19,6 +20,18 @@ var (
 	ErrInvalidID = errors.New("models: ID provided was invalid")
 
 	ErrInvalidPassword = errors.New("models: incorrect password provided")
+
+	// ErrEmailRequired is returned when no email address is provided
+	// when a user is created
+	ErrEmailRequired = errors.New("models: email address is required")
+
+	// ErrEmailInvalid is returned when an email address provided does
+	// not match any of our formatting requirements
+	ErrEmailInvalid = errors.New("models: email address provided is invalid")
+
+	// ErrEmailTaken is returned when an update or create is attempted
+	// with an email address that is already in use.
+	ErrEmailTaken = errors.New("models email address is already taken")
 )
 
 const userPwPepper = "peppa"
@@ -61,10 +74,7 @@ func NewUserService(connectionInfo string) (UserService, error) {
 		return nil, err
 	}
 	hmac := hash.NewHMAC(hmacSecretKey)
-	uv := &userValidator{
-		hmac:   hmac,
-		UserDB: ug,
-	}
+	uv := newUserValidator(ug, hmac)
 	return &userService{
 		UserDB: uv,
 	}, nil
@@ -83,6 +93,8 @@ type UserService interface {
 	UserDB
 }
 
+var _ UserService = &userService{}
+
 // Implementation of the userService
 type userService struct {
 	UserDB
@@ -99,9 +111,21 @@ func runUserValFuncs(user *User, fns ...userValFunc) error {
 	return nil
 }
 
+var _ UserDB = &userValidator{}
+
+func newUserValidator(udb UserDB, hmac hash.HMAC) *userValidator {
+	return &userValidator{
+		UserDB: udb,
+		hmac:   hmac,
+		emailRegex: regexp.MustCompile(
+			`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,16}$`),
+	}
+}
+
 type userValidator struct {
 	UserDB
-	hmac hash.HMAC
+	hmac       hash.HMAC
+	emailRegex *regexp.Regexp
 }
 
 // ByRemember will normalize the email address before calling
@@ -146,11 +170,13 @@ func (uv *userValidator) Create(user *User) error {
 	}
 
 	err := runUserValFuncs(user,
-		uv.normalizeEmail,
-		uv.requireEmail,
 		uv.bcryptPassword,
 		uv.setRememberIfUnset, // Order of validators matter, setRememberIfUnset needs to happen first
-		uv.hmacRemember)       // as no hashing of an empty remember token will happen
+		uv.hmacRemember,       // as no hashing of an empty remember token will happen
+		uv.normalizeEmail,
+		uv.requireEmail,
+		uv.emailFormat,
+		uv.emailIsAvail)
 	if err != nil {
 		return err
 	}
@@ -164,7 +190,9 @@ func (uv *userValidator) Update(user *User) error {
 		uv.bcryptPassword,
 		uv.hmacRemember,
 		uv.normalizeEmail,
-		uv.requireEmail)
+		uv.requireEmail,
+		uv.emailFormat,
+		uv.emailIsAvail)
 	if err != nil {
 		return err
 	}
@@ -176,18 +204,18 @@ func (uv *userValidator) Update(user *User) error {
 func (uv *userValidator) Delete(id uint) error {
 	var user User
 	user.ID = id
-	err := runUserValFuncs(&user, uv.idGreaterThanZero)
+	err := runUserValFuncs(&user, uv.idGreaterThan(0))
 	if err != nil {
 		return err
 	}
-	return uv.UserDB.Delete(user.ID)
+	return uv.UserDB.Delete(id)
 }
 
 // bcryptPassword will hash a user's password with a predefined pepper
 // and bcrypt if the password field is not an empty string
 func (uv *userValidator) bcryptPassword(user *User) error {
-	// If password provided is empty, then user is not trying to set password
 	if user.Password == "" {
+		// If password provided is empty, no need to run bcrypt
 		return nil
 	}
 	//TODO - Create validation function for password entry: tooShort, noUpper, noNumber, noSymbol
@@ -226,6 +254,15 @@ func (uv *userValidator) setRememberIfUnset(user *User) error {
 	return nil
 }
 
+func (uv *userValidator) idGreaterThan(n uint) userValFunc {
+	return userValFunc(func(user *User) error {
+		if user.ID <= n {
+			return ErrInvalidID
+		}
+		return nil
+	})
+}
+
 func (uv *userValidator) idGreaterThanZero(user *User) error {
 	if user.ID <= 0 {
 		return ErrInvalidID
@@ -244,7 +281,40 @@ func (uv *userValidator) normalizeEmail(user *User) error {
 // when user.Email is an empty string
 func (uv *userValidator) requireEmail(user *User) error {
 	if user.Email == "" {
-		return errors.New("Email address is required.")
+		return ErrEmailRequired
+	}
+	return nil
+}
+
+func (uv *userValidator) emailFormat(user *User) error {
+	if user.Email == "" {
+		return nil
+	}
+	if !uv.emailRegex.MatchString(user.Email) {
+		return ErrEmailInvalid
+	}
+	return nil
+}
+
+func (uv *userValidator) emailIsAvail(user *User) error {
+	existing, err := uv.ByEmail(user.Email)
+	if err == ErrNotFound {
+		// Email address is available if we don't find
+		// a user with that email address.
+		return nil
+	}
+	// We can't continue our validation without a successful
+	// query, so if we get any error other than ErrNotFound we
+	// should return it.
+	if err != nil {
+		return err
+	}
+
+	// If we get here that means we found a user w/ this email
+	// address, so we need to see if this is the same user we
+	// are updating, or if we have a conflict.
+	if user.ID != existing.ID {
+		return ErrEmailTaken
 	}
 	return nil
 }
