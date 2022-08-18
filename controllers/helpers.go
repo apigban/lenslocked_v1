@@ -7,7 +7,6 @@ import (
 )
 
 func parseForm(r *http.Request, dst interface{}) error {
-
 	if err := r.ParseForm(); err != nil {
 		return err
 	}

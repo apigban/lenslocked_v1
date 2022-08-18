@@ -5,6 +5,9 @@ const (
 	AlertLvlWarning = "warning"
 	AlertLvlInfo    = "info"
 	AlertLvlSuccess = "success"
+
+	// Catchall message
+	AlertMsgGeneric = "Something went wont. Please try again. Contact us if the problem persists."
 )
 
 // Alert is used to rendned Bootstrap Alert messages in templates
