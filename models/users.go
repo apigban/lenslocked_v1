@@ -36,13 +36,6 @@ type UserDB interface {
 	Create(user *User) error
 	Update(user *User) error
 	Delete(id uint) error
-
-	// Used to close a DB connection
-	Close() error
-
-	// Migration helpers
-	AutoMigrate() error
-	DestructiveReset() error
 }
 
 func NewUserService(db *gorm.DB) UserService {
@@ -348,16 +341,16 @@ func (uv *userValidator) passwordHashRequired(user *User) error {
 	return nil
 }
 
-// func newUserGorm(connectionInfo string) (*userGorm, error) {
-// 	db, err := gorm.Open("postgres", connectionInfo)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	db.LogMode(true) // TODO - remove when env == production
-// 	return &userGorm{
-// 		db: db,
-// 	}, nil
-// }
+func newUserGorm(connectionInfo string) (*userGorm, error) {
+	db, err := gorm.Open("postgres", connectionInfo)
+	if err != nil {
+		return nil, err
+	}
+	db.LogMode(true) // TODO - remove when env == production
+	return &userGorm{
+		db: db,
+	}, nil
+}
 
 type userGorm struct {
 	db *gorm.DB
@@ -444,25 +437,4 @@ func (ug *userGorm) Delete(id uint) error {
 // in the provided user object
 func (ug *userGorm) Update(user *User) error {
 	return ug.db.Save(user).Error
-}
-
-//Close closes the UserService data connection
-func (ug *userGorm) Close() error {
-	return ug.db.Close()
-}
-
-//DestructiveReset drops the user table and rebuilds it
-func (ug *userGorm) DestructiveReset() error {
-	if err := ug.db.DropTableIfExists(&User{}).Error; err != nil {
-		return err
-	}
-	return ug.AutoMigrate()
-}
-
-// AutoMigrate will attempt to automatically migrate the users table
-func (ug *userGorm) AutoMigrate() error {
-	if err := ug.db.AutoMigrate(&User{}).Error; err != nil {
-		return err
-	}
-	return nil
 }
