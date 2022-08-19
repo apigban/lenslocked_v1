@@ -23,14 +23,17 @@ func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
-	us, err := models.NewUserService(psqlInfo)
+	services, err := models.NewServices(psqlInfo)
 	must(err)
-	defer us.Close()
-	us.AutoMigrate()
+	// TODO - FIX below, it doesnt compile because Close(), AutoMigrate() and DestructiveReset() have not been moved to the top level service
+	// Additional note - the 3 methods are general to all services, it is proper to only have 1 top level set of methods
+	// instead of repeating Close(), AutoMigrate() and DestructiveReset() for every service
+	// defer us.Close()
+	// us.AutoMigrate()
 	// us.DestructiveReset()
 
 	staticC := controllers.NewStatic()
-	usersC := controllers.NewUsers(us)
+	usersC := controllers.NewUsers(services.User)
 
 	r := mux.NewRouter()
 	r.Handle("/", staticC.Home).Methods("GET")
