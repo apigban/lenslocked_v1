@@ -83,9 +83,13 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 //
 // POST /login
 func (u Users) Login(w http.ResponseWriter, r *http.Request) {
+	vd := views.Data{}
 	var form LoginForm
 	if err := parseForm(r, &form); err != nil {
-		panic(err)
+		log.Println(err)
+		vd.SetAlert(err)
+		u.LoginView.Render(w, vd)
+		return
 	}
 
 	user, err := u.us.Authenticate(form.Email, form.Password)
