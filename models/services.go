@@ -8,7 +8,9 @@ func NewServices(connectionInfo string) (*Services, error) {
 		return nil, err
 	}
 	db.LogMode(true) // TODO - remove when env == production
-	return &Services{}
+	return &Services{
+		User: NewUserService(db),
+	}, nil
 }
 
 type Services struct {
