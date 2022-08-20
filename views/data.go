@@ -35,6 +35,8 @@ func (d *Data) SetAlert(err error) {
 			Message: AlertMsgGeneric, // show generic error error to enduser
 		}
 	}
+	// TODO - handle errors that are presented to the user as generic ones
+	// TODO - log alerts that are privateErrors
 
 }
 
