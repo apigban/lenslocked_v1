@@ -6,9 +6,6 @@ const (
 	// ErrNotFound is returned when a resource is not found in the database
 	ErrNotFound modelError = "models: resource not found"
 
-	// ErrIDInvalid is returned when an invalid ID is provided to a method like Delete()
-	ErrIDInvalid modelError = "models: ID provided was invalid"
-
 	ErrPasswordIncorrect modelError = "models: incorrect password provided"
 
 	// ErrEmailRequired is returned when no email address is provided
@@ -21,7 +18,7 @@ const (
 
 	// ErrEmailTaken is returned when an update or create is attempted
 	// with an email address that is already in use.
-	ErrEmailTaken modelError = "models email address is already taken"
+	ErrEmailTaken modelError = "models: email address is already taken"
 
 	// ErrPasswordTooShort is returned when an update or create is
 	// attempted with a password <8 characters.
@@ -30,12 +27,19 @@ const (
 	// ErrPasswordRequired is returned when a create is attempted without a password
 	ErrPasswordRequired modelError = "models: password is required"
 
+	ErrTitleRequired modelError = "models: title is required"
+
+	// ErrIDInvalid is returned when an invalid ID is provided to a method like Delete()
+	ErrIDInvalid privateError = "models: ID provided was invalid"
+
 	// ErrRememberTooShort is returned when a remember token is not atlease 32 bytes in length
-	ErrRememberTooShort modelError = "models: remember token must be atleast 32 bytes long"
+	ErrRememberTooShort privateError = "models: remember token must be atleast 32 bytes long"
 
 	// ErrRememberRequired is returned when a create or update is attempted without
 	// without a user remember token hash
-	ErrRememberRequired modelError = "models: remember token is required"
+	ErrRememberRequired privateError = "models: remember token is required"
+
+	ErrUserIDRequired privateError = "models: user ID is required"
 )
 
 type modelError string
@@ -52,4 +56,10 @@ func (e modelError) Public() string {
 	split := strings.Split(s, " ")
 	split[0] = strings.Title(split[0])
 	return strings.Join(split, " ")
+}
+
+type privateError string
+
+func (e privateError) Error() string {
+	return string(e)
 }
