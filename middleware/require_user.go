@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/apigban/lenslocked_v1/context"
 	"github.com/apigban/lenslocked_v1/models"
 )
 
@@ -31,6 +32,12 @@ func (mw *RequireUser) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 				http.Redirect(w, r, "/login", http.StatusFound)
 				return
 			}
+
+			ctx := r.Context() // set current context
+
+			ctx = context.WithUser(ctx, user) // update the current context with the user associated to remember_token
+			r = r.WithContext(ctx)            // update request to have the updated context
+
 			fmt.Println("User Found:", user)
 
 			next(w, r)
